@@ -1,5 +1,5 @@
 import prompts from 'prompts';
-import type { Course } from '../browser/course-detector';
+import type { Course } from '@/browser/course-detector';
 
 export async function selectCourse(courses: Course[]): Promise<Course | null> {
   const { course } = await prompts({

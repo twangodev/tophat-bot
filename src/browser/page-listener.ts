@@ -1,6 +1,6 @@
 import type { Page } from 'playwright';
-import { config } from '../config';
-import { events } from '../events/emitter';
+import { config } from '@/config';
+import { events } from '@/events/emitter';
 
 export class PageListener {
   private page: Page;

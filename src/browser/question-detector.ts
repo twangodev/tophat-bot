@@ -1,5 +1,5 @@
 import type { Page } from 'playwright';
-import { events } from '../events/emitter';
+import { events } from '@/events/emitter';
 
 export class QuestionDetector {
   private page: Page;

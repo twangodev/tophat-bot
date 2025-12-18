@@ -1,5 +1,5 @@
 import { EventEmitter as NodeEventEmitter } from 'events';
-import { EventType, EventPayload } from './types';
+import { EventType, EventPayload } from '@/events/types';
 
 type Handler<T extends EventType> = (event: EventPayload<T>) => void;
 

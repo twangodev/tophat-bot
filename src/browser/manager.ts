@@ -2,8 +2,8 @@ import * as chromeLauncher from 'chrome-launcher';
 import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth';
 import type { Browser, BrowserContext, Page } from 'playwright';
-import { config } from '../config';
-import { events } from '../events/emitter';
+import { config } from '@/config';
+import { events } from '@/events/emitter';
 
 chromium.use(stealth());
 

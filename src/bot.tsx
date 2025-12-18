@@ -1,18 +1,22 @@
+import React from 'react';
+import { render, Instance } from 'ink';
 import { createActor } from 'xstate';
-import { botMachine, BotState } from './machine';
-import { BrowserManager } from './browser/manager';
-import { PageListener } from './browser/page-listener';
-import { CourseDetector } from './browser/course-detector';
-import { selectCourse } from './ui/course-selector';
-import { events } from './events/emitter';
-import { config } from './config';
-import { log, spinner } from './utils/log';
+import { botMachine, BotState } from '@/machine';
+import { BrowserManager } from '@/browser/manager';
+import { PageListener } from '@/browser/page-listener';
+import { CourseDetector } from '@/browser/course-detector';
+import { selectCourse } from '@/ui/course-selector';
+import { StatusDisplay } from '@/ui/StatusDisplay';
+import { events } from '@/events/emitter';
+import { config } from '@/config';
+import { log, spinner } from '@/utils/log';
 
 export class Bot {
   private actor = createActor(botMachine);
   private browser = new BrowserManager();
   private pageListener: PageListener | null = null;
   private courseDetector: CourseDetector | null = null;
+  private inkInstance: Instance | null = null;
   private startupComplete = false;
 
   constructor() {
@@ -40,7 +44,7 @@ export class Bot {
           }
           break;
         case 'answering':
-          log.success('Auto-answering started');
+          this.inkInstance = render(React.createElement(StatusDisplay));
           break;
         case 'error':
           log.error(`Error: ${snapshot.context.error}`);
@@ -147,12 +151,25 @@ export class Bot {
     const navSpinner = spinner(`Entering ${course.name}...`);
     await this.browser.page.goto(course.url);
     navSpinner.succeed(`Entered ${course.name}`);
+
+    // Click the Classroom tab before starting auto-answering
+    const classroomSpinner = spinner('Opening Classroom...');
+    try {
+      await this.browser.page.click('a[data-click-id="nav tab lecture"]');
+      await this.browser.page.waitForURL(/\/lecture/, { timeout: 10000 });
+      classroomSpinner.succeed('Classroom opened');
+    } catch {
+      classroomSpinner.fail('Could not find Classroom tab');
+    }
+
     this.actor.send({ type: 'START' });
   }
 
   async stop(): Promise<void> {
     this.actor.stop();
     this.pageListener?.stop();
+    this.inkInstance?.clear();
+    this.inkInstance?.unmount();
     await this.browser.close();
     events.removeAllListeners();
   }
