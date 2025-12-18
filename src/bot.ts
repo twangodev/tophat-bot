@@ -2,6 +2,8 @@ import { createActor } from 'xstate';
 import { botMachine, BotState } from './machine';
 import { BrowserManager } from './browser/manager';
 import { PageListener } from './browser/page-listener';
+import { CourseDetector } from './browser/course-detector';
+import { selectCourse } from './ui/course-selector';
 import { events } from './events/emitter';
 import { config } from './config';
 import { log, spinner } from './utils/log';
@@ -10,6 +12,7 @@ export class Bot {
   private actor = createActor(botMachine);
   private browser = new BrowserManager();
   private pageListener: PageListener | null = null;
+  private courseDetector: CourseDetector | null = null;
   private startupComplete = false;
 
   constructor() {
@@ -33,8 +36,7 @@ export class Bot {
           break;
         case 'selecting_class':
           if (this.startupComplete) {
-            log.success('Ready to select a class');
-            log.info('Navigate to a class to start auto-answering');
+            this.showAvailableCourses();
           }
           break;
         case 'answering':
@@ -100,10 +102,11 @@ export class Bot {
     }
     navSpinner.succeed('Navigated to TopHat');
 
-    // Setup page listener
+    // Setup page listener and course detector
     if (this.browser.page) {
       this.pageListener = new PageListener(this.browser.page);
       this.pageListener.start();
+      this.courseDetector = new CourseDetector(this.browser.page);
     }
 
     // Check if we need to login
@@ -115,6 +118,36 @@ export class Bot {
     } else {
       this.actor.send({ type: 'READY' });
     }
+  }
+
+  private async showAvailableCourses(): Promise<void> {
+    if (!this.courseDetector || !this.browser.page) return;
+
+    // Wait for page to load
+    await new Promise((r) => setTimeout(r, 1000));
+
+    const isOnLobby = await this.courseDetector.isOnLobby();
+    if (!isOnLobby) {
+      log.info('Navigate to the lobby to see available courses');
+      return;
+    }
+
+    const courses = await this.courseDetector.getCourses();
+    if (courses.length === 0) {
+      log.warn('No courses found');
+      return;
+    }
+
+    const course = await selectCourse(courses);
+    if (!course) {
+      log.warn('No course selected');
+      return;
+    }
+
+    const navSpinner = spinner(`Entering ${course.name}...`);
+    await this.browser.page.goto(course.url);
+    navSpinner.succeed(`Entered ${course.name}`);
+    this.actor.send({ type: 'START' });
   }
 
   async stop(): Promise<void> {

@@ -7,6 +7,8 @@ export type BotEvent =
   | { type: 'page:login_detected' }
   | { type: 'page:login_complete' }
   | { type: 'page:error'; error: Error }
+  | { type: 'question:detected' }
+  | { type: 'question:answered' }
   | { type: 'state:changed'; from: string; to: string }
   | { type: 'user:pause' }
   | { type: 'user:resume' };
