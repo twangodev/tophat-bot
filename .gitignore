@@ -142,3 +142,6 @@ vite.config.ts.timestamp-*
 
 # JetBrains IDEs
 .idea/
+
+# Browser profile copy
+.browser-profile/
